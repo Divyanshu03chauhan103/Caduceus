@@ -80,7 +80,7 @@ const App: React.FC = () => {
 
   const handleAnalyze = async (sequence: string, patientId?: string) => {
     setIsAnalyzing(true);
-    
+    console.log(patientId)
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
