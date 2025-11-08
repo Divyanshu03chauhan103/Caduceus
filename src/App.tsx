@@ -1,162 +1,116 @@
-// src/App.tsx
-import React, { useState } from 'react';
-import Header from './components/Header';
-import Navigation from './components/Navigation';
-import SequenceInput from './components/SequenceInput';
-import DiseasePredictions from './components/DiseasePredictions';
-import AnalysisDetails from './components/AnalysisDetails';
-import Footer from './components/Footer';
-import { AnalysisResults, DiseaseRisk } from './types';
+import { useState } from "react";
+import axios from "axios";
+import Header from "./components/Header";
+import InputCard from "./components/InputCard";
+import ResultsCard from "./components/ResultsCard";
+import ShapGallery from "./components/ShapGallery";
+import Footer from "./components/Footer";
+import type {
+  PredictResponseSingle,
+  PredictResponseMulti,
+  ShapResponse,
+} from "./types";
 
-const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'sequence' | 'predictions' | 'details'>('sequence');
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+type Tab = "input" | "predictions" | "analysis";
 
-  // Mock disease data generator
-  const generateMockDiseaseRisks = (): DiseaseRisk[] => {
-    const diseases = [
-      {
-        name: "Alzheimer's Disease",
-        icon: 'brain',
-        iconColor: 'bg-red-500',
-        baseRisk: 15,
-        baseConfidence: 85
-      },
-      {
-        name: 'Type 2 Diabetes',
-        icon: 'droplet',
-        iconColor: 'bg-orange-500',
-        baseRisk: 60,
-        baseConfidence: 90
-      },
-      {
-        name: 'Cardiovascular Disease',
-        icon: 'heart',
-        iconColor: 'bg-yellow-500',
-        baseRisk: 40,
-        baseConfidence: 85
-      },
-      {
-        name: 'Breast Cancer',
-        icon: 'shield',
-        iconColor: 'bg-green-500',
-        baseRisk: 8,
-        baseConfidence: 75
-      },
-      {
-        name: 'Hypertension',
-        icon: 'heart',
-        iconColor: 'bg-blue-500',
-        baseRisk: 35,
-        baseConfidence: 88
-      },
-      {
-        name: 'Osteoporosis',
-        icon: 'shield',
-        iconColor: 'bg-purple-500',
-        baseRisk: 22,
-        baseConfidence: 82
-      }
-    ];
+// ⛳ put your ngrok URL here (NO leading/trailing spaces)
+const BACKEND_URL = " https://gema-thirstless-insincerely.ngrok-free.dev";
 
-    // Randomize the risks slightly and pick 3-4 diseases
-    const numDiseases = Math.floor(Math.random() * 2) + 3; // 3 or 4 diseases
-    const selectedDiseases = diseases
-      .sort(() => Math.random() - 0.5)
-      .slice(0, numDiseases)
-      .map((disease, index) => ({
-        id: `disease-${index}`,
-        name: disease.name,
-        riskLevel: Math.max(5, disease.baseRisk + Math.floor(Math.random() * 20) - 10),
-        confidence: Math.max(70, disease.baseConfidence + Math.floor(Math.random() * 10) - 5),
-        icon: disease.icon,
-        iconColor: disease.iconColor
-      }))
-      .sort((a, b) => b.riskLevel - a.riskLevel);
+export default function App() {
+  const [tab, setTab] = useState<Tab>("input");
+  const [patientId, setPatientId] = useState("");
+  const [sequence, setSequence] = useState("");
+  const [mode, setMode] = useState<"single" | "multi">("single");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    return selectedDiseases;
-  };
+  const [result, setResult] = useState<
+    PredictResponseSingle | PredictResponseMulti | null
+  >(null);
 
-  const handleAnalyze = async (sequence: string, patientId?: string) => {
-    setIsAnalyzing(true);
-    console.log(patientId)
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+  const [shapData, setShapData] = useState<ShapResponse | null>(null);
 
-    const mockResults: AnalysisResults = {
-      diseaseRisks: generateMockDiseaseRisks(),
-      modelPerformance: {
-        accuracy: 92 + Math.random() * 6, // 92-98%
-        processingTime: 1.5 + Math.random() * 2, // 1.5-3.5s
-        sequenceLength: sequence.replace(/[^ATCGN]/gi, '').length,
-        modelVersion: 'v2.1.0'
-      },
-      analysisSummary: {
-        sequenceQuality: Math.random() > 0.2 ? 'Excellent' : 'Good',
-        coverage: 95 + Math.random() * 4.8, // 95-99.8%
-        variantsOfInterest: Math.floor(Math.random() * 5), // 0-4
-        criticalMutations: Math.random() > 0.9 ? 1 : 0 // 10% chance of critical mutation
-      }
-    };
+  const handlePredict = async () => {
+    setLoading(true);
+    setError("");
+    setShapData(null);
 
-    setAnalysisResults(mockResults);
-    setIsAnalyzing(false);
-    setActiveTab('predictions');
-  };
-
-  const renderContent = () => {
-    if (isAnalyzing) {
-      return (
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <h3 className="text-lg font-semibold text-gray-900">Analyzing DNA Sequence...</h3>
-            <p className="text-gray-600">Processing genetic data using transformer models</p>
-          </div>
-        </div>
-      );
-    }
-
-    switch (activeTab) {
-      case 'sequence':
-        return <SequenceInput onAnalyze={handleAnalyze} />;
-      case 'predictions':
-        return analysisResults ? (
-          <DiseasePredictions diseaseRisks={analysisResults.diseaseRisks} />
-        ) : (
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-            <p className="text-gray-600">No analysis results available. Please analyze a DNA sequence first.</p>
-          </div>
-        );
-      case 'details':
-        return analysisResults ? (
-          <AnalysisDetails 
-            modelPerformance={analysisResults.modelPerformance}
-            analysisSummary={analysisResults.analysisSummary}
-          />
-        ) : (
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-            <p className="text-gray-600">No analysis results available. Please analyze a DNA sequence first.</p>
-          </div>
-        );
-      default:
-        return null;
+    try {
+      const res = await axios.post(`${BACKEND_URL}/predict`, { sequence, mode });
+      setResult(res.data);
+      setTab("predictions");
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Prediction failed.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleShap = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${BACKEND_URL}/shap`, { sequence, mode });
+      setShapData(res.data);
+      setTab("analysis");
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "SHAP analysis failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Single-label => show SHAP only when result === "POSITIVE"
+  const canShowShapButton =
+    !!result &&
+    ((mode === "single" &&
+      (result as PredictResponseSingle)?.result?.toUpperCase() === "POSITIVE") ||
+      mode === "multi");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 p-6">
-        <div className="max-w-6xl mx-auto">
-          {renderContent()}
-        </div>
+    <div className="min-h-screen bg-[#f7f9fc] text-slate-800">
+      <Header tab={tab} onTabChange={setTab} />
+
+      <main className="max-w-5xl mx-auto px-5 pb-24">
+        {tab === "input" && (
+          <InputCard
+            patientId={patientId}
+            setPatientId={setPatientId}
+            sequence={sequence}
+            setSequence={setSequence}
+            mode={mode}
+            setMode={(m) => {
+              setMode(m);
+              setResult(null);
+              setShapData(null);
+            }}
+            onAnalyze={handlePredict}
+            loading={loading}
+          />
+        )}
+
+        {tab === "predictions" && (
+          <ResultsCard
+            mode={mode}
+            result={result}
+            loading={loading}
+            onBackToInput={() => setTab("input")}
+            onRunShap={handleShap}
+            showShapButton={canShowShapButton}
+          />
+        )}
+
+        {tab === "analysis" && shapData && (
+          <ShapGallery shapData={shapData} onBack={() => setTab("predictions")} />
+        )}
+
+        {error && (
+          <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+            {error}
+          </div>
+        )}
       </main>
-      <Footer />
+        <Footer />
     </div>
   );
-};
-
-export default App;
+}
